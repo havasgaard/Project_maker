@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Project</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Create Project and Files</h1>
+        <form id="initial-form">
+            <div class="form-group">
+                <label for="generation_method">Choose generation method:</label>
+                <select class="form-control" id="generation_method" name="generation_method">
+                    <option value="manual">Manual</option>
+                    <option value="chatgpt">Use ChatGPT</option>
+                </select>
+            </div>
+            <div class="form-group" id="manual-input">
+                <label for="file_structure_manual">File Structure (Manual Input)</label>
+                <textarea class="form-control" id="file_structure_manual" name="file_structure_manual" rows="10"></textarea>
+            </div>
+            <div class="form-group" id="chatgpt-input" style="display: none;">
+                <label for="user_input">What do you want to make?</label>
+                <input type="text" class="form-control" id="user_input" name="user_input">
+                <button type="button" class="btn btn-primary mt-3" id="generate-structure">Generate Structure</button>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Next</button>
+        </form>
+
+        <form id="project-form" style="display:none;" method="POST" action="{{ url_for('create_files') }}">
+            <div class="form-group">
+                <label for="project_name">Project Name</label>
+                <input type="text" class="form-control" id="project_name" name="project_name" required>
+            </div>
+            <div class="form-group">
+                <label for="destination">Destination Path</label>
+                <input type="text" class="form-control" id="destination" name="destination" required>
+            </div>
+            <div class="form-group">
+                <label for="framework">Select Framework</label>
+                <select class="form-control" id="framework" name="framework" required>
+                    <option value="flask">Flask</option>
+                    <option value="django">Django</option>
+                </select>
+            </div>
+            <div class="form-group" id="superuser-fields" style="display: none;">
+                <h3>Superuser Details</h3>
+                <div class="form-group">
+                    <label for="superuser_username">Superuser Username</label>
+                    <input type="text" class="form-control" id="superuser_username" name="superuser_username">
+                </div>
+                <div class="form-group">
+                    <label for="superuser_email">Superuser Email</label>
+                    <input type="email" class="form-control" id="superuser_email" name="superuser_email">
+                </div>
+                <div class="form-group">
+                    <label for="superuser_password">Superuser Password</label>
+                    <input type="password" class="form-control" id="superuser_password" name="superuser_password">
+                </div>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="install_dependencies" name="install_dependencies">
+                <label class="form-check-label" for="install_dependencies">Install dependencies</label>
+            </div>
+            <input type="hidden" id="file_structure" name="file_structure">
+            <button type="submit" class="btn btn-primary mt-3">Create</button>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mt-3">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        document.getElementById('generation_method').addEventListener('change', function() {
+            var method = this.value;
+            if (method === 'manual') {
+                document.getElementById('manual-input').style.display = 'block';
+                document.getElementById('chatgpt-input').style.display = 'none';
+            } else if (method === 'chatgpt') {
+                document.getElementById('manual-input').style.display = 'none';
+                document.getElementById('chatgpt-input').style.display = 'block';
+            }
+        });
+
+        document.getElementById('generate-structure').addEventListener('click', function() {
+            var userInput = document.getElementById('user_input').value;
+
+            fetch('/get_structure', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_input: userInput }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('file_structure').value = data.file_structure;
+                document.getElementById('initial-form').style.display = 'none';
+                document.getElementById('project-form').style.display = 'block';
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById('initial-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            var method = document.getElementById('generation_method').value;
+            if (method === 'manual') {
+                document.getElementById('file_structure').value = document.getElementById('file_structure_manual').value;
+                document.getElementById('initial-form').style.display = 'none';
+                document.getElementById('project-form').style.display = 'block';
+            }
+        });
+
+        document.getElementById('framework').addEventListener('change', function() {
+            var superuserFields = document.getElementById('superuser-fields');
+            if (this.value === 'django') {
+                superuserFields.style.display = 'block';
+            } else {
+                superuserFields.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
